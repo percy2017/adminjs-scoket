@@ -1,0 +1,14 @@
+node_modules/
+.env
+.playwright
+AGENTS.md
+*.sqlite
+*.log
+logs
+.DS_Store
+uploads/
+database/*.sqlite
+playwright-report/
+test-results/
+cookies.txt
+nul

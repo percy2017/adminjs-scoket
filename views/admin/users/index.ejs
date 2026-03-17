@@ -1,0 +1,169 @@
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table id="usersTable" class="table table-striped table-hover" style="width:100%">
+        <thead>
+          <tr>
+            <th>Avatar</th>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Creado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  let usersTable;
+  const userPermissions = {
+    canEdit: <%= typeof canEdit !== 'undefined' && canEdit %>,
+    canDelete: <%= typeof canDelete !== 'undefined' && canDelete %>
+  };
+
+  function renderActions(id, name) {
+    let actions = '';
+    if (userPermissions.canEdit) {
+      actions += `<a href="/admin/users/${id}/edit" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i></a> `;
+    }
+    if (userPermissions.canDelete) {
+      actions += `<button onclick="confirmDelete(${id}, '${name.replace(/'/g, "\\'")}')" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>`;
+    }
+    return actions;
+  }
+
+  $(document).ready(function() {
+    usersTable = $("#usersTable").DataTable({
+      processing: true,
+      serverSide: true,
+      language: {
+        url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+      },
+      ajax: {
+        url: '/admin/users/datatables',
+        type: 'GET',
+        data: function(d) {
+          d.search = d.search ? d.search.value : '';
+          return d;
+        }
+      },
+      columns: [
+        { data: 0, orderable: false, searchable: false },
+        { data: 1 },
+        { data: 2 },
+        { data: 3 },
+        { data: 4 },
+        { data: 5 },
+        { data: 6 },
+        { data: 7 },
+        { 
+          data: 8, 
+          orderable: false, 
+          searchable: false,
+          render: function(data, type, row) {
+            return data;
+          }
+        }
+      ],
+      order: [[1, "desc"]]
+    });
+
+    const socket = io();
+    
+    socket.on('user:created', function(data) {
+      console.log('Usuario creado:', data);
+      usersTable.ajax.reload(null, false);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'success',
+        title: 'Nuevo usuario creado',
+        text: data.name + ' - ' + data.email,
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true
+      });
+    });
+
+    socket.on('user:updated', function(data) {
+      console.log('Usuario actualizado:', data);
+      usersTable.ajax.reload(null, false);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'info',
+        title: 'Usuario actualizado',
+        text: data.name,
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true
+      });
+    });
+
+    socket.on('user:deleted', function(data) {
+      console.log('Usuario eliminado:', data);
+      usersTable.ajax.reload(null, false);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'warning',
+        title: 'Usuario eliminado',
+        text: 'ID: ' + data.id,
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true
+      });
+    });
+  });
+
+  function confirmDelete(id, name) {
+    console.log('Delete called with id:', id, 'name:', name);
+    Swal.fire({
+      title: '¿Eliminar usuario?',
+      text: 'El usuario "' + name + '" será eliminado. Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        console.log('Confirmed, calling DELETE /admin/users/' + id);
+        fetch('/admin/users/' + id, {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        })
+        .then(res => {
+          console.log('Response status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('Response data:', data);
+          if (data.success) {
+            // La tabla se actualiza automáticamente via Socket.IO
+          } else {
+            Swal.fire('Error', data.message || 'Error al eliminar usuario', 'error');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          Swal.fire('Error', 'Error al eliminar usuario', 'error');
+        });
+      }
+    });
+  }
+</script>

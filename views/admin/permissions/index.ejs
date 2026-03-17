@@ -1,0 +1,90 @@
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Permisos</h5>
+    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
+      <i class="bi bi-plus-circle"></i> Generar Permisos
+    </button>
+  </div>
+  <div class="card-body">
+    <% Object.keys(permissionsByTable).forEach(function(table) { %>
+      <div class="mb-4">
+        <h6 class="border-bottom pb-2 mb-3">
+          <%= table === 'null' || !table ? 'Global' : table %>
+        </h6>
+        <div class="row">
+          <% permissionsByTable[table].forEach(function(perm) { %>
+            <div class="col-md-3 col-sm-4 col-6 mb-2">
+              <span class="badge bg-primary bg-opacity-10 text-primary border">
+                <%= perm.key %>
+              </span>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+</div>
+
+<div class="modal fade" id="generateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Generar Permisos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="generateForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="table_name" class="form-label">Nombre del Recurso</label>
+            <input type="text" class="form-control" id="table_name" name="table_name" placeholder="Ej: products" required>
+            <small class="text-muted">Se crearán permisos: browse, read, add, edit, delete</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Generar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.getElementById('generateForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(this);
+  
+  fetch('/admin/permissions/generate', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Permisos generados',
+        text: data.message
+      }).then(() => {
+        location.reload();
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message
+      });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al generar permisos'
+    });
+  });
+});
+</script>

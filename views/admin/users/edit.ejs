@@ -1,0 +1,156 @@
+<div class="card">
+  <div class="card-body">
+    <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <ul class="mb-0">
+          <% errors.forEach(function(error) { %>
+            <li><%= error %></li>
+          <% }); %>
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    
+    <form 
+      action="<%= user && user.id ? '/admin/users/' + user.id : '/admin/users' %>" 
+      method="POST" 
+      id="userForm"
+    >
+      <% if (user && user.id) { %>
+      <input type="hidden" name="_method" value="PUT">
+      <% } %>
+      <div class="row">
+        <div class="col-md-3 text-center mb-3">
+          <label class="form-label d-block">Avatar</label>
+          <div class="avatar-preview mx-auto mb-2" id="avatarContainer" style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;">
+            <% if (user && user.avatar) { %>
+              <img id="avatarPreview" src="<%= user.avatar %>" style="width: 100%; height: 100%; object-fit: cover;">
+            <% } else { %>
+              <i class="bi bi-person text-muted" style="font-size: 3rem;"></i>
+            <% } %>
+          </div>
+          <input type="hidden" name="avatar" id="avatarInput" value="<%= user && user.avatar ? user.avatar : '' %>">
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('mediaModal').style.display='block'">
+            <i class="bi bi-image"></i> Seleccionar
+          </button>
+          <% if (user && user.avatar) { %>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearAvatar()">
+              <i class="bi bi-trash"></i>
+            </button>
+          <% } %>
+        </div>
+        
+        <div class="col-md-9">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="name" class="form-label">Nombre *</label>
+              <input type="text" class="form-control" id="name" name="name" value="<%= user && user.name ? user.name : '' %>" required minlength="2">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label for="email" class="form-label">Email *</label>
+              <input type="email" class="form-control" id="email" name="email" value="<%= user && user.email ? user.email : '' %>" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label for="phone" class="form-label">Teléfono</label>
+              <input type="tel" class="form-control" id="phone" name="phone" value="<%= user && user.phone ? user.phone : '' %>">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="password" class="form-label">
+                Contraseña <%= user && user.id ? '(dejar vacío para mantener)' : '*' %>
+              </label>
+              <input type="password" class="form-control" id="password" name="password" <%= user && user.id ? '' : 'required' %> minlength="6">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label for="role" class="form-label">Rol *</label>
+              <select class="form-select" id="role" name="role_id" required>
+                <option value="">Seleccionar rol</option>
+                <% if (typeof roles !== 'undefined' && roles.length > 0) { %>
+                  <% roles.forEach(function(role) { %>
+                    <option value="<%= role.id %>" <%= user && user.role_id == role.id ? 'selected' : '' %>><%= role.name %></option>
+                  <% }); %>
+                <% } else { %>
+                  <option value="admin" <%= user && user.role === 'admin' ? 'selected' : '' %>>admin</option>
+                  <option value="guest" <%= user && user.role === 'guest' ? 'selected' : '' %>>guest</option>
+                  <option value="editor" <%= user && user.role === 'editor' ? 'selected' : '' %>>editor</option>
+                <% } %>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <div class="form-check mt-4">
+                <input type="hidden" name="status" value="0">
+                <input class="form-check-input" type="checkbox" id="status" name="status" value="1" <%= (user && user.status) || (user && typeof user.status === 'undefined') ? 'checked' : '' %>>
+                <label class="form-check-label" for="status">Cuenta habilitada</label>
+              </div>
+              <small class="text-muted">Desmarcar para deshabilitar el acceso del usuario</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-circle"></i> <%= user && user.id ? 'Actualizar' : 'Crear' %> Usuario
+        </button>
+        <a href="/admin/users" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="mediaModal" class="modal" tabindex="-1" style="display: none;">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Seleccionar imagen</h5>
+        <button type="button" class="btn-close" onclick="document.getElementById('mediaModal').style.display='none'"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe src="/admin/media?picker=1" style="width: 100%; height: 500px; border: none;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('mediaSelected', function(e) {
+  var url = e.detail.url;
+  document.getElementById('avatarInput').value = url;
+  var container = document.getElementById('avatarContainer');
+  container.innerHTML = '<img id="avatarPreview" src="' + url + '" style="width: 100%; height: 100%; object-fit: cover;">';
+  document.getElementById('mediaModal').style.display = 'none';
+  
+  var deleteBtn = document.querySelector('.btn-outline-danger');
+  if (!deleteBtn) {
+    deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn btn-sm btn-outline-danger ms-1';
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.onclick = clearAvatar;
+    var selectBtn = document.querySelector('.btn-outline-primary');
+    if (selectBtn && selectBtn.nextSibling) {
+      selectBtn.parentNode.insertBefore(deleteBtn, selectBtn.nextSibling);
+    }
+  }
+  deleteBtn.style.display = 'inline-block';
+});
+
+function clearAvatar() {
+  document.getElementById('avatarInput').value = '';
+  var container = document.getElementById('avatarContainer');
+  container.innerHTML = '<i class="bi bi-person text-muted" style="font-size: 3rem;"></i>';
+  var deleteBtn = document.querySelector('.btn-outline-danger');
+  if (deleteBtn) {
+    deleteBtn.style.display = 'none';
+  }
+}
+</script>

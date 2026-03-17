@@ -1,0 +1,165 @@
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="flex-shrink-0">
+            <div class="bg-primary bg-opacity-10 rounded p-3">
+              <i class="bi bi-people text-primary" style="font-size: 1.5rem;"></i>
+            </div>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h6 class="text-muted mb-1">Usuarios</h6>
+            <h2 class="mb-0" id="usersCount"><%= typeof usersCount !== 'undefined' ? usersCount : 0 %></h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="flex-shrink-0">
+            <div class="bg-success bg-opacity-10 rounded p-3">
+              <i class="bi bi-images text-success" style="font-size: 1.5rem;"></i>
+            </div>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h6 class="text-muted mb-1">Medios</h6>
+            <h2 class="mb-0" id="mediaCount"><%= typeof mediaCount !== 'undefined' ? mediaCount : 0 %></h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="flex-shrink-0">
+            <div class="bg-info bg-opacity-10 rounded p-3">
+              <i class="bi bi-lightning-charge text-info" style="font-size: 1.5rem;"></i>
+            </div>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h6 class="text-muted mb-1">Socket.IO</h6>
+            <div class="d-flex align-items-center">
+              <span class="badge bg-success" id="socketStatus">Conectado</span>
+              <small class="text-muted ms-2" id="socketTime"></small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0">
+        <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Actividad en tiempo real</h5>
+      </div>
+      <div class="card-body">
+        <div id="activityLog" class="alert alert-light border" style="max-height: 200px; overflow-y: auto;">
+          <small class="text-muted">Esperando actividad...</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  let socket;
+  let reconnectAttempts = 0;
+  
+  function connectSocket() {
+    socket = io({
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity
+    });
+    
+    socket.on('connect', function() {
+      console.log('Socket.IO conectado:', socket.id);
+      document.getElementById('socketStatus').className = 'badge bg-success';
+      document.getElementById('socketStatus').textContent = 'Conectado';
+      document.getElementById('socketTime').textContent = new Date().toLocaleTimeString('es-ES');
+      reconnectAttempts = 0;
+      addActivity(' Conexión establecida', 'success');
+    });
+    
+    socket.on('disconnect', function() {
+      console.log('Socket.IO desconectado');
+      document.getElementById('socketStatus').className = 'badge bg-danger';
+      document.getElementById('socketStatus').textContent = 'Desconectado';
+      addActivity(' Conexión perdida', 'danger');
+    });
+    
+    socket.on('reconnect', function(attemptNumber) {
+      console.log('Reconectado después de', attemptNumber, 'intentos');
+      document.getElementById('socketStatus').className = 'badge bg-success';
+      document.getElementById('socketStatus').textContent = 'Reconectado';
+      addActivity(' Reconexión exitosa', 'success');
+    });
+    
+    socket.on('user:created', function(data) {
+      console.log('Usuario creado:', data);
+      addActivity('Nuevo usuario: ' + data.name, 'success');
+      document.getElementById('usersCount').textContent = parseInt(document.getElementById('usersCount').textContent) + 1;
+    });
+    
+    socket.on('user:updated', function(data) {
+      console.log('Usuario actualizado:', data);
+      addActivity('Usuario actualizado: ' + data.name, 'info');
+    });
+    
+    socket.on('user:deleted', function(data) {
+      console.log('Usuario eliminado:', data);
+      addActivity('Usuario eliminado (ID: ' + data.id + ')', 'warning');
+      document.getElementById('usersCount').textContent = Math.max(0, parseInt(document.getElementById('usersCount').textContent) - 1);
+    });
+    
+    socket.on('media:created', function(data) {
+      console.log('Medio subido:', data);
+      addActivity('Nuevo medio: ' + data.original_name, 'success');
+      document.getElementById('mediaCount').textContent = parseInt(document.getElementById('mediaCount').textContent) + 1;
+    });
+    
+    socket.on('media:deleted', function(data) {
+      console.log('Medio eliminado:', data);
+      addActivity('Medio eliminado (ID: ' + data.id + ')', 'warning');
+      document.getElementById('mediaCount').textContent = Math.max(0, parseInt(document.getElementById('mediaCount').textContent) - 1);
+    });
+  }
+  
+  function addActivity(message, type) {
+    const log = document.getElementById('activityLog');
+    const time = new Date().toLocaleTimeString('es-ES');
+    const badgeClass = {
+      'success': 'bg-success',
+      'danger': 'bg-danger',
+      'warning': 'bg-warning',
+      'info': 'bg-info'
+    };
+    
+    const html = '<div class="d-flex justify-content-between align-items-center mb-2">' +
+      '<span><span class="badge ' + badgeClass[type] + ' me-2">' + time + '</span>' + message + '</span>' +
+      '</div>';
+    
+    if (log.querySelector('.text-muted')) {
+      log.innerHTML = html;
+    } else {
+      log.innerHTML = html + log.innerHTML;
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    connectSocket();
+  });
+</script>

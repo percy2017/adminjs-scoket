@@ -1,0 +1,120 @@
+<div class="card">
+  <div class="card-body">
+    <form id="roleForm">
+      <% if (role) { %>
+        <input type="hidden" name="id" value="<%= role.id %>">
+      <% } %>
+      
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="name" class="form-label">Nombre del Rol *</label>
+          <input type="text" class="form-control" id="name" name="name" 
+                 value="<%= role ? role.name : '' %>" required
+                 <%= role && role.name === 'admin' ? 'readonly' : '' %>>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="description" class="form-label">Descripción</label>
+          <input type="text" class="form-control" id="description" name="description" 
+                 value="<%= role ? role.description || '' : '' %>">
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label">Permisos</label>
+        
+        <% 
+        const permissionsByTable = {};
+        allPermissions.forEach(function(perm) {
+          const table = perm.table_name || 'global';
+          if (!permissionsByTable[table]) {
+            permissionsByTable[table] = [];
+          }
+          permissionsByTable[table].push(perm);
+        });
+        %>
+        
+        <div class="row mt-2">
+          <% Object.keys(permissionsByTable).forEach(function(table) { %>
+            <div class="col-md-4 mb-3">
+              <div class="card">
+                <div class="card-header bg-light">
+                  <strong><%= table === 'null' ? 'Global' : table %></strong>
+                </div>
+                <div class="card-body">
+                  <% permissionsByTable[table].forEach(function(perm) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" 
+                             name="permissions" 
+                             value="<%= perm.id %>" 
+                             id="perm_<%= perm.id %>"
+                             <%= permissions.includes(perm.id) ? 'checked' : '' %>>
+                      <label class="form-check-label" for="perm_<%= perm.id %>">
+                        <%= perm.key %>
+                      </label>
+                    </div>
+                  <% }); %>
+                </div>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+      
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-circle"></i> <%= role ? 'Actualizar' : 'Crear' %> Rol
+        </button>
+        <a href="/admin/roles" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.getElementById('roleForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(this);
+  const isEdit = <%= role ? 'true' : 'false' %>;
+  const roleId = <%= role ? role.id : 'null' %>;
+  
+  const url = isEdit ? '/admin/roles/' + roleId : '/admin/roles';
+  const method = isEdit ? 'PUT' : 'POST';
+  
+  fetch(url, {
+    method: method,
+    body: formData,
+    headers: {
+      'Accept': 'application/json'
+    }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: data.message
+      }).then(() => {
+        window.location.href = '/admin/roles';
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message || data.errors?.[0] || 'Error desconocido'
+      });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al guardar rol'
+    });
+  });
+});
+</script>

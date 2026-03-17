@@ -1,0 +1,102 @@
+#!/usr/bin/env node
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('┌─────────────────────────────────────');
+  console.error('│ 🚨 UNHANDLED REJECTION');
+  console.error('├─────────────────────────────────────');
+  console.error('│ Promise:', promise);
+  console.error('│ Reason:', reason);
+  console.error('└─────────────────────────────────────');
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('┌─────────────────────────────────────');
+  console.error('│ 🚨 UNCAUGHT EXCEPTION');
+  console.error('├─────────────────────────────────────');
+  console.error('│', err.message);
+  console.error('│', err.stack);
+  console.error('└─────────────────────────────────────');
+  process.exit(1);
+});
+
+import app from '../app.js';
+import debug from 'debug';
+import http from 'http';
+import { Server } from 'socket.io';
+import config from '../config/app.js';
+import { sequelize } from '../database/models/User.js';
+
+const port = normalizePort(config.app.port);
+app.set('port', port);
+
+const server = http.createServer(app);
+
+const io = new Server(server);
+
+io.on('connection', (socket) => {
+  console.log('Cliente conectado');
+  
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado');
+  });
+});
+
+app.set('io', io);
+
+sequelize.authenticate()
+  .then(() => {
+    console.log('✅ Database connected successfully');
+    return sequelize.sync({ force: false });
+  })
+  .then(() => {
+    console.log('✅ Database synchronized');
+  })
+  .catch((err) => {
+    console.error('┌─────────────────────────────────────');
+    console.error('│ 🚨 DATABASE ERROR');
+    console.error('├─────────────────────────────────────');
+    console.error('│ Unable to connect to database:');
+    console.error('│', err.message);
+    console.error('└─────────────────────────────────────');
+  });
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+function normalizePort(val) {
+  const port = parseInt(val, 10);
+  if (isNaN(port)) return val;
+  if (port >= 0) return port;
+  return false;
+}
+
+function onError(error) {
+  if (error.syscall !== 'listen') throw error;
+  
+  const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+  
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+function onListening() {
+  const addr = server.address();
+  const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+  console.log('┌─────────────────────────────────────');
+  console.log('│ 🚀 Server running');
+  console.log('├─────────────────────────────────────');
+  console.log(`│ http://localhost:${port}/`);
+  console.log('└─────────────────────────────────────');
+}

@@ -1,0 +1,108 @@
+<% if (media.type === 'image') { %>
+  <img src="<%= media.url %>" class="img-fluid mb-3" alt="<%= media.alt_text || media.filename %>">
+<% } else if (media.type === 'video') { %>
+  <video src="<%= media.url %>" class="w-100 mb-3" controls></video>
+<% } else if (media.type === 'audio') { %>
+  <audio src="<%= media.url %>" class="w-100 mb-3" controls></audio>
+<% } else if (media.mime_type === 'application/pdf') { %>
+  <embed src="<%= media.url %>" type="application/pdf" class="w-100 mb-3" style="height: 400px;">
+<% } else { %>
+  <div class="text-center py-5 bg-light mb-3">
+    <i class="bi bi-file-earmark-text" style="font-size: 4rem;"></i>
+  </div>
+<% } %>
+
+<div class="mb-3">
+  <label class="form-label">Nombre</label>
+  <input type="text" class="form-control" value="<%= media.original_name %>" readonly>
+</div>
+
+<div class="mb-3">
+  <label class="form-label">URL</label>
+  <div class="input-group">
+    <input type="text" class="form-control" value="<%= media.url %>" readonly id="mediaUrl">
+    <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('<%= media.url %>'); Swal.fire({icon:'success',title:'Copiado',timer:1500})">Copiar</button>
+  </div>
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Tipo</label>
+  <input type="text" class="form-control" value="<%= media.mime_type %>" readonly>
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Tamaño</label>
+  <input type="text" class="form-control" value="<%= (media.size / 1024).toFixed(2) %> KB" readonly>
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Fecha</label>
+  <input type="text" class="form-control" value="<%= new Date(media.createdAt).toLocaleDateString('es-ES') %>" readonly>
+</div>
+
+<% if (media.author) { %>
+  <div class="mb-3">
+    <label class="form-label">Subido por</label>
+    <input type="text" class="form-control" value="<%= media.author.name %>" readonly>
+  </div>
+<% } %>
+
+<hr>
+
+<form action="/admin/media/<%= media.id %>?_method=PUT" method="POST" id="editMediaForm">
+  <div class="mb-3">
+    <label class="form-label">Texto alternativo (Alt)</label>
+    <input type="text" class="form-control" name="alt_text" value="<%= media.alt_text || '' %>">
+  </div>
+  
+  <div class="mb-3">
+    <label class="form-label">Título/Caption</label>
+    <input type="text" class="form-control" name="caption" value="<%= media.caption || '' %>">
+  </div>
+  
+  <div class="mb-3">
+    <label class="form-label">Descripción</label>
+    <textarea class="form-control" name="description" rows="3"><%= media.description || '' %></textarea>
+  </div>
+  
+  <button type="submit" class="btn btn-primary w-100">
+    <i class="bi bi-check"></i> Guardar
+  </button>
+</form>
+
+<hr>
+
+<form action="/admin/media/<%= media.id %>?_method=DELETE" method="POST" id="deleteForm">
+  <button type="submit" class="btn btn-danger w-100">
+    <i class="bi bi-trash"></i> Eliminar permanentemente
+  </button>
+</form>
+
+<script>
+document.getElementById('editMediaForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  fetch(this.action, {
+    method: 'POST',
+    body: formData
+  }).then(() => {
+    Swal.fire({icon:'success',title:'Guardado'}).then(() => closeSidebar());
+  });
+});
+
+document.getElementById('deleteForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: 'No se puede deshacer',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  }).then(result => {
+    if (result.isConfirmed) {
+      fetch(this.action, {method: 'POST'}).then(() => location.reload());
+    }
+  });
+});
+</script>

@@ -1,0 +1,27 @@
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <form>
+          <% settings.forEach(function(setting) { %>
+            <div class="mb-3">
+              <label class="form-label"><%= setting.description || setting.key %></label>
+              <input type="text" class="form-control" value="<%= setting.value %>" readonly>
+              <small class="text-muted"><%= setting.key %></small>
+            </div>
+          <% }); %>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Información</h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted">La configuración del sitio se gestiona aquí. Actualmente hay <strong><%= settings.length %></strong> opciones configuradas.</p>
+      </div>
+    </div>
+  </div>
+</div>

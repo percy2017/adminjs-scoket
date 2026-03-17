@@ -1,0 +1,162 @@
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Roles</h5>
+    <div>
+      <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#generateModal">
+        <i class="bi bi-plus-circle"></i> Generar Permisos
+      </button>
+      <a href="/admin/roles/new" class="btn btn-sm btn-success">
+        <i class="bi bi-plus-circle"></i> Nuevo Rol
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Permisos</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% roles.forEach(function(role) { %>
+            <tr>
+              <td><%= role.id %></td>
+              <td><strong><%= role.name %></strong></td>
+              <td><%= role.description || '-' %></td>
+              <td>
+                <span class="badge bg-secondary"><%= role.permissions.length %> permisos</span>
+              </td>
+              <td>
+                <a href="/admin/roles/<%= role.id %>/edit" class="btn btn-sm btn-primary">
+                  <i class="bi bi-pencil"></i> Editar
+                </a>
+                <% if (role.name !== 'admin') { %>
+                  <button onclick="confirmDelete('<%= role.id %>', '<%= role.name %>')" class="btn btn-sm btn-danger">
+                    <i class="bi bi-trash"></i> Eliminar
+                  </button>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="generateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Generar Permisos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="generateForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="table_name" class="form-label">Nombre del Recurso</label>
+            <input type="text" class="form-control" id="table_name" name="table_name" placeholder="Ej: products" required>
+            <small class="text-muted">Se crearán permisos: browse, read, add, edit, delete</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Generar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.getElementById('generateForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(this);
+  
+  fetch('/admin/roles/generate', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Permisos generados',
+        text: data.message
+      }).then(() => {
+        location.reload();
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message
+      });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al generar permisos'
+    });
+  });
+});
+
+function confirmDelete(id, name) {
+  Swal.fire({
+    title: '¿Eliminar rol?',
+    text: 'El rol "' + name + '" será eliminado. Esta acción no se puede deshacer.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#d33'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      fetch('/admin/roles/' + id, {
+        method: 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Eliminado',
+            text: data.message
+          }).then(() => {
+            location.reload();
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.message
+          });
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Error al eliminar rol'
+        });
+      });
+    }
+  });
+}
+</script>

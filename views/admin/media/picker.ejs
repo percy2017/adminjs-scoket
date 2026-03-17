@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seleccionar medio</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    body { background: #f8f9fa; padding: 20px; }
+    .media-item { cursor: pointer; transition: transform 0.2s; }
+    .media-item:hover { transform: scale(1.05); }
+    .media-preview { height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; }
+    .media-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row mb-3">
+      <div class="col-md-8">
+        <ul class="nav nav-pills">
+          <li class="nav-item">
+            <a class="nav-link <%= filters.type === 'all' || !filters.type ? 'active' : '' %>" href="/admin/media?picker=1&type=all">Todos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= filters.type === 'image' ? 'active' : '' %>" href="/admin/media?picker=1&type=image">Imágenes</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="dropZone" class="drop-zone mb-4" style="border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer;">
+      <form id="uploadForm" action="/admin/media?picker=1" method="POST" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" multiple accept="image/*" style="display: none;">
+      </form>
+      <i class="bi bi-cloud-upload"></i>
+      <p>Arrastra o haz clic para subir</p>
+    </div>
+
+    <% if (media && media.length > 0) { %>
+      <div class="row g-3">
+        <% media.forEach(function(item) { %>
+          <% if (item.type === 'image') { %>
+            <div class="col-4 col-md-3 col-lg-2">
+              <div class="card media-item" onclick="selectMedia('<%= item.url %>')">
+                <div class="media-preview">
+                  <img src="<%= item.url %>" alt="<%= item.alt_text || item.filename %>">
+                </div>
+                <div class="card-body p-2">
+                  <p class="small text-truncate mb-0"><%= item.original_name %></p>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div class="text-center py-5">
+        <i class="bi bi-images text-muted" style="font-size: 3rem;"></i>
+        <p class="mt-2 text-muted">No hay imágenes</p>
+      </div>
+    <% } %>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadForm = document.getElementById('uploadForm');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#0d6efd';
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '#ccc';
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#ccc';
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        uploadForm.submit();
+      }
+    });
+    
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        uploadForm.submit();
+      }
+    });
+
+    function selectMedia(url) {
+      const event = new CustomEvent('mediaSelected', { detail: { url: url } });
+      window.parent.document.dispatchEvent(event);
+    }
+
+    uploadForm.addEventListener('submit', function() {
+      setTimeout(() => location.reload(), 1000);
+    });
+  </script>
+</body>
+</html>
